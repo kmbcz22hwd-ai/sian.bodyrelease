@@ -15,352 +15,195 @@
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --ink:    #2b3a35;
-      --sage:   #5a8070;
-      --sage-lt:#8aab9c;
-      --cream:  #f5f1ea;
-      --paper:  #fffdf8;
-      --gold:   #b89a5e;
-      --muted:  #7a8c85;
-      --white:  #ffffff;
-      --line-green: #06c755;
+      --ink: #2b3a35; --sage: #5a8070; --sage-lt: #8aab9c;
+      --cream: #f5f1ea; --paper: #fffdf8; --gold: #b89a5e;
+      --muted: #7a8c85; --line-green: #06c755;
     }
-
     html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper); color: var(--ink); line-height: 1.75; }
 
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-      background: var(--paper);
-      color: var(--ink);
-      line-height: 1.75;
+    /* EDIT MODE */
+    .edit-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: var(--ink); color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 10px 16px; font-size: 0.82rem;
     }
+    .edit-bar button {
+      padding: 7px 18px; border-radius: 20px; border: none; cursor: pointer;
+      font-size: 0.82rem; font-weight: 500; font-family: inherit;
+    }
+    .btn-edit-on  { background: var(--gold); color: #fff; }
+    .btn-edit-off { background: var(--sage); color: #fff; }
+    .btn-save     { background: #fff; color: var(--ink); }
+    .edit-hint { color: rgba(255,255,255,0.6); font-size: 0.75rem; }
 
-    /* ── NAV ── */
+    body.editing [contenteditable] {
+      outline: 2px dashed var(--gold);
+      background: rgba(184,154,94,0.06);
+      border-radius: 4px; cursor: text;
+      min-width: 20px; display: inline-block;
+    }
+    body.editing [contenteditable]:focus { outline: 2px solid var(--gold); background: rgba(184,154,94,0.12); }
+
+    /* PHOTO UPLOAD */
+    .photo-slot {
+      position: relative; background: var(--cream);
+      border-radius: 12px; overflow: hidden;
+      min-height: 200px; display: flex; align-items: center; justify-content: center;
+    }
+    .photo-slot img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 12px; }
+    .photo-overlay {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(43,58,53,0.55);
+      align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+      color: #fff; font-size: 0.82rem; cursor: pointer; border-radius: 12px;
+    }
+    body.editing .photo-slot:hover .photo-overlay { display: flex; }
+    .photo-overlay span { font-size: 1.8rem; }
+    .photo-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: var(--muted); font-size: 0.82rem;
+    }
+    .photo-placeholder span { font-size: 2rem; }
+
+    /* NAV */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(255,253,248,0.92);
-      backdrop-filter: blur(8px);
+      background: rgba(255,253,248,0.92); backdrop-filter: blur(8px);
       border-bottom: 1px solid rgba(90,128,112,0.15);
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 5vw;
-      height: 60px;
+      padding: 0 5vw; height: 60px;
     }
-    .nav-logo {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 1rem; font-weight: 500; color: var(--sage);
-      letter-spacing: 0.15em; text-decoration: none;
-    }
+    .nav-logo { font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 500; color: var(--sage); letter-spacing: 0.15em; text-decoration: none; }
     .nav-links { display: flex; gap: 1.8rem; list-style: none; }
-    .nav-links a {
-      font-size: 0.82rem; color: var(--muted); text-decoration: none;
-      letter-spacing: 0.06em; transition: color .2s;
-    }
+    .nav-links a { font-size: 0.82rem; color: var(--muted); text-decoration: none; letter-spacing: 0.06em; transition: color .2s; }
     .nav-links a:hover { color: var(--sage); }
-    .nav-cta {
-      background: var(--line-green); color: #fff;
-      font-size: 0.8rem; font-weight: 500; letter-spacing: 0.08em;
-      border: none; border-radius: 24px; padding: 7px 18px;
-      cursor: pointer; text-decoration: none; transition: opacity .2s;
-    }
+    .nav-cta { background: var(--line-green); color: #fff; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.08em; border: none; border-radius: 24px; padding: 7px 18px; cursor: pointer; text-decoration: none; transition: opacity .2s; }
     .nav-cta:hover { opacity: 0.85; }
 
-    /* ── HERO ── */
-    #hero {
-      min-height: 100svh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center;
-      background: linear-gradient(160deg, #eef4f1 0%, var(--cream) 55%, #e8ede6 100%);
-      padding: 100px 6vw 60px;
-      position: relative; overflow: hidden;
-    }
-    #hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 30%, rgba(90,128,112,0.08) 0%, transparent 55%),
-        radial-gradient(circle at 80% 70%, rgba(184,154,94,0.06) 0%, transparent 50%);
-      pointer-events: none;
-    }
-    .hero-eyebrow {
-      font-size: 0.75rem; letter-spacing: 0.25em; color: var(--gold);
-      text-transform: uppercase; margin-bottom: 1.2rem;
-    }
-    .hero-title {
-      font-family: 'Noto Serif TC', serif;
-      font-size: clamp(2.2rem, 7vw, 4rem);
-      font-weight: 700; color: var(--ink);
-      line-height: 1.2; letter-spacing: 0.05em;
-      margin-bottom: 0.6rem;
-    }
+    /* HERO */
+    #hero { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: linear-gradient(160deg,#eef4f1 0%,var(--cream) 55%,#e8ede6 100%); padding: 100px 6vw 80px; position: relative; overflow: hidden; }
+    #hero::before { content:''; position:absolute; inset:0; background-image: radial-gradient(circle at 20% 30%,rgba(90,128,112,.08) 0%,transparent 55%), radial-gradient(circle at 80% 70%,rgba(184,154,94,.06) 0%,transparent 50%); pointer-events:none; }
+    .hero-eyebrow { font-size: 0.75rem; letter-spacing: 0.25em; color: var(--gold); margin-bottom: 1.2rem; }
+    .hero-title { font-family: 'Noto Serif TC', serif; font-size: clamp(2.2rem,7vw,4rem); font-weight: 700; color: var(--ink); line-height: 1.2; letter-spacing: 0.05em; margin-bottom: 0.6rem; }
     .hero-title span { color: var(--sage); }
-    .hero-sub {
-      font-size: clamp(1rem, 2.5vw, 1.2rem);
-      color: var(--muted); max-width: 500px; margin: 0 auto 2.4rem;
-      font-weight: 300; letter-spacing: 0.04em;
-    }
+    .hero-sub { font-size: clamp(1rem,2.5vw,1.2rem); color: var(--muted); max-width: 500px; margin: 0 auto 2.4rem; font-weight: 300; letter-spacing: 0.04em; }
     .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-    .btn-primary {
-      background: var(--sage); color: #fff;
-      padding: 14px 32px; border-radius: 32px;
-      font-size: 0.95rem; font-weight: 500; letter-spacing: 0.08em;
-      text-decoration: none; transition: background .25s, transform .2s;
-      display: inline-flex; align-items: center; gap: 8px;
-    }
+    .btn-primary { background: var(--sage); color: #fff; padding: 14px 32px; border-radius: 32px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.08em; text-decoration: none; transition: background .25s, transform .2s; display: inline-flex; align-items: center; gap: 8px; }
     .btn-primary:hover { background: #4a6e5f; transform: translateY(-1px); }
-    .btn-secondary {
-      background: transparent; color: var(--sage);
-      border: 1.5px solid var(--sage);
-      padding: 13px 28px; border-radius: 32px;
-      font-size: 0.95rem; letter-spacing: 0.08em;
-      text-decoration: none; transition: all .25s;
-      display: inline-flex; align-items: center; gap: 8px;
-    }
+    .btn-secondary { background: transparent; color: var(--sage); border: 1.5px solid var(--sage); padding: 13px 28px; border-radius: 32px; font-size: 0.95rem; letter-spacing: 0.08em; text-decoration: none; transition: all .25s; display: inline-flex; align-items: center; gap: 8px; }
     .btn-secondary:hover { background: var(--sage); color: #fff; }
-    .hero-scroll {
-      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      color: var(--muted); font-size: 0.7rem; letter-spacing: 0.15em;
-      animation: bounce 2.4s ease-in-out infinite;
-    }
-    .hero-scroll-arrow { font-size: 1rem; }
+    .hero-scroll { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.15em; animation: bounce 2.4s ease-in-out infinite; }
     @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
 
-    /* ── SECTIONS COMMON ── */
+    /* SECTIONS */
     section { padding: 80px 6vw; }
-    .section-label {
-      font-size: 0.7rem; letter-spacing: 0.3em; color: var(--gold);
-      text-transform: uppercase; margin-bottom: 0.6rem; display: block;
-    }
-    .section-title {
-      font-family: 'Noto Serif TC', serif;
-      font-size: clamp(1.6rem, 4vw, 2.4rem);
-      font-weight: 500; color: var(--ink); letter-spacing: 0.06em;
-      margin-bottom: 1rem;
-    }
+    .section-label { font-size: 0.7rem; letter-spacing: 0.3em; color: var(--gold); text-transform: uppercase; margin-bottom: 0.6rem; display: block; }
+    .section-title { font-family: 'Noto Serif TC', serif; font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 500; color: var(--ink); letter-spacing: 0.06em; margin-bottom: 1rem; }
     .section-body { color: var(--muted); max-width: 560px; line-height: 1.9; }
-    .divider {
-      width: 40px; height: 2px; background: var(--sage-lt);
-      margin: 1.2rem 0;
-    }
+    .divider { width: 40px; height: 2px; background: var(--sage-lt); margin: 1.2rem 0; }
 
-    /* ── ABOUT ── */
+    /* ABOUT */
     #about { background: var(--paper); }
-    .about-grid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 60px; align-items: center; max-width: 900px; margin: 0 auto;
-    }
-    .about-quote {
-      font-family: 'Noto Serif TC', serif;
-      font-size: clamp(1.05rem, 2.2vw, 1.3rem);
-      color: var(--sage); line-height: 1.9;
-      border-left: 3px solid var(--sage-lt);
-      padding-left: 1.4rem; margin-top: 1.6rem;
-    }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; max-width: 900px; margin: 0 auto; }
+    .about-quote { font-family: 'Noto Serif TC', serif; font-size: clamp(1.05rem,2.2vw,1.3rem); color: var(--sage); line-height: 1.9; border-left: 3px solid var(--sage-lt); padding-left: 1.4rem; margin-top: 1.6rem; }
 
-    /* ── FEATURES ── */
+    /* FEATURES */
     #features { background: var(--cream); }
-    .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 28px; margin-top: 2.5rem; max-width: 900px;
-    }
-    .feature-card {
-      background: var(--paper); border-radius: 16px;
-      padding: 28px 24px; border: 1px solid rgba(90,128,112,0.12);
-      transition: box-shadow .25s, transform .2s;
-    }
-    .feature-card:hover { box-shadow: 0 8px 32px rgba(90,128,112,0.12); transform: translateY(-3px); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 28px; margin-top: 2.5rem; max-width: 900px; }
+    .feature-card { background: var(--paper); border-radius: 16px; padding: 28px 24px; border: 1px solid rgba(90,128,112,.12); transition: box-shadow .25s, transform .2s; }
+    .feature-card:hover { box-shadow: 0 8px 32px rgba(90,128,112,.12); transform: translateY(-3px); }
     .feature-icon { font-size: 1.6rem; margin-bottom: 0.8rem; }
-    .feature-name {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 1rem; font-weight: 500; color: var(--sage);
-      margin-bottom: 0.5rem; letter-spacing: 0.04em;
-    }
+    .feature-name { font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 500; color: var(--sage); margin-bottom: 0.5rem; letter-spacing: 0.04em; }
     .feature-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.8; }
 
-    /* ── PROCESS ── */
+    /* PROCESS */
     #process { background: var(--paper); }
-    .process-steps {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr));
-      gap: 0; margin-top: 2.5rem; max-width: 860px; position: relative;
-    }
-    .step {
-      text-align: center; padding: 0 20px 32px;
-      position: relative;
-    }
-    .step:not(:last-child)::after {
-      content: '→';
-      position: absolute; right: -8px; top: 18px;
-      color: var(--sage-lt); font-size: 1.2rem;
-    }
-    .step-num {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: var(--sage); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 500;
-      margin: 0 auto 1rem;
-    }
-    .step-title {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 0.95rem; font-weight: 500; color: var(--sage);
-      margin-bottom: 0.4rem; letter-spacing: 0.05em;
-    }
+    .process-steps { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 0; margin-top: 2.5rem; max-width: 860px; }
+    .step { text-align: center; padding: 0 20px 32px; position: relative; }
+    .step:not(:last-child)::after { content:'→'; position:absolute; right:-8px; top:18px; color:var(--sage-lt); font-size:1.2rem; }
+    .step-num { width: 44px; height: 44px; border-radius: 50%; background: var(--sage); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 500; margin: 0 auto 1rem; }
+    .step-title { font-family: 'Noto Serif TC', serif; font-size: 0.95rem; font-weight: 500; color: var(--sage); margin-bottom: 0.4rem; letter-spacing: 0.05em; }
     .step-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.75; }
 
-    /* ── SERVICES ── */
+    /* SERVICES */
     #services { background: var(--cream); }
-    .services-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
-      gap: 28px; margin-top: 2.5rem; max-width: 760px;
-    }
-    .service-card {
-      background: var(--paper); border-radius: 20px;
-      padding: 36px 30px;
-      border: 1px solid rgba(90,128,112,0.12);
-      position: relative; overflow: hidden;
-      transition: box-shadow .25s, transform .2s;
-    }
-    .service-card:hover { box-shadow: 0 12px 40px rgba(90,128,112,0.14); transform: translateY(-4px); }
-    .service-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 4px;
-      background: linear-gradient(90deg, var(--sage) 0%, var(--sage-lt) 100%);
-    }
-    .service-name {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 1.25rem; font-weight: 500; color: var(--ink);
-      margin-bottom: 0.8rem; letter-spacing: 0.04em;
-    }
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 28px; margin-top: 2.5rem; max-width: 760px; }
+    .service-card { background: var(--paper); border-radius: 20px; padding: 36px 30px; border: 1px solid rgba(90,128,112,.12); position: relative; overflow: hidden; transition: box-shadow .25s, transform .2s; }
+    .service-card:hover { box-shadow: 0 12px 40px rgba(90,128,112,.14); transform: translateY(-4px); }
+    .service-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,var(--sage) 0%,var(--sage-lt) 100%); }
+    .service-name { font-family: 'Noto Serif TC', serif; font-size: 1.25rem; font-weight: 500; color: var(--ink); margin-bottom: 0.8rem; letter-spacing: 0.04em; }
     .service-desc { font-size: 0.875rem; color: var(--muted); margin-bottom: 0.6rem; line-height: 1.85; }
-    .service-benefit {
-      font-size: 0.82rem; color: var(--sage);
-      padding: 8px 12px; background: rgba(90,128,112,0.07);
-      border-radius: 8px; margin-bottom: 1.4rem; line-height: 1.7;
-    }
-    .service-price {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 1.5rem; font-weight: 700; color: var(--gold);
-      letter-spacing: 0.02em;
-    }
+    .service-benefit { font-size: 0.82rem; color: var(--sage); padding: 8px 12px; background: rgba(90,128,112,.07); border-radius: 8px; margin-bottom: 1.4rem; line-height: 1.7; }
+    .service-price { font-family: 'Noto Serif TC', serif; font-size: 1.5rem; font-weight: 700; color: var(--gold); letter-spacing: 0.02em; }
     .service-price span { font-size: 0.85rem; color: var(--muted); font-weight: 300; }
 
-    /* ── RESULTS ── */
+    /* RESULTS */
     #results { background: var(--paper); }
-    .results-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
-      gap: 24px; margin-top: 2.5rem; max-width: 900px;
-    }
-    .result-card {
-      background: var(--cream); border-radius: 16px;
-      padding: 28px 24px;
-      border-left: 4px solid var(--sage);
-    }
-    .result-title {
-      font-family: 'Noto Serif TC', serif;
-      font-size: 1rem; font-weight: 500; color: var(--sage);
-      margin-bottom: 0.5rem;
-    }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 28px; margin-top: 2.5rem; max-width: 900px; }
+    .result-card { background: var(--cream); border-radius: 16px; padding: 0; overflow: hidden; border-left: 4px solid var(--sage); }
+    .result-card .photo-slot { border-radius: 0; min-height: 220px; }
+    .result-card .photo-slot img { border-radius: 0; }
+    .result-body { padding: 20px 22px; }
+    .result-title { font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 500; color: var(--sage); margin-bottom: 0.5rem; }
     .result-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.8; }
 
-    /* ── SOCIAL ── */
+    /* SOCIAL */
     #social { background: var(--cream); text-align: center; }
     .social-intro { color: var(--muted); max-width: 480px; margin: 0 auto 2.5rem; line-height: 1.9; }
     .social-btns { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-    .social-btn {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 14px 28px; border-radius: 50px;
-      font-size: 0.9rem; font-weight: 500; letter-spacing: 0.06em;
-      text-decoration: none; transition: opacity .2s, transform .2s;
-    }
+    .social-btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; border-radius: 50px; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.06em; text-decoration: none; transition: opacity .2s, transform .2s; }
     .social-btn:hover { opacity: 0.85; transform: translateY(-2px); }
     .btn-fb { background: #1877f2; color: #fff; }
     .btn-ig { background: linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); color: #fff; }
     .btn-line { background: var(--line-green); color: #fff; }
 
-    /* ── CONTACT ── */
+    /* CONTACT */
     #contact { background: var(--ink); color: var(--cream); text-align: center; padding: 80px 6vw; }
-    .contact-title {
-      font-family: 'Noto Serif TC', serif;
-      font-size: clamp(1.6rem,4vw,2.4rem);
-      font-weight: 500; color: #fff;
-      margin-bottom: 0.5rem; letter-spacing: 0.06em;
-    }
+    .contact-title { font-family: 'Noto Serif TC', serif; font-size: clamp(1.6rem,4vw,2.4rem); font-weight: 500; color: #fff; margin-bottom: 0.5rem; letter-spacing: 0.06em; }
     .contact-sub { color: var(--sage-lt); margin-bottom: 3rem; font-size: 0.95rem; letter-spacing: 0.06em; }
-    .contact-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
-      gap: 32px; max-width: 860px; margin: 0 auto 3rem; text-align: left;
-    }
-    .contact-block h3 {
-      font-size: 0.7rem; letter-spacing: 0.25em; color: var(--gold);
-      text-transform: uppercase; margin-bottom: 0.6rem;
-    }
-    .contact-block p, .contact-block a {
-      color: rgba(245,241,234,0.8); font-size: 0.9rem;
-      line-height: 1.9; text-decoration: none;
-    }
+    .contact-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 32px; max-width: 860px; margin: 0 auto 3rem; text-align: left; }
+    .contact-block h3 { font-size: 0.7rem; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; margin-bottom: 0.6rem; }
+    .contact-block p, .contact-block a { color: rgba(245,241,234,.8); font-size: 0.9rem; line-height: 1.9; text-decoration: none; }
     .contact-block a:hover { color: var(--sage-lt); }
-    .contact-hours span { color: var(--sage-lt); font-size: 0.8rem; display: block; }
-    .map-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--sage); color: #fff;
-      padding: 13px 28px; border-radius: 50px;
-      font-size: 0.9rem; letter-spacing: 0.08em;
-      text-decoration: none; transition: background .25s;
-      margin-top: 1.5rem;
-    }
+    .hours-line { display: flex; gap: 8px; flex-wrap: wrap; }
+    .map-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--sage); color: #fff; padding: 13px 28px; border-radius: 50px; font-size: 0.9rem; letter-spacing: 0.08em; text-decoration: none; transition: background .25s; margin-top: 1.5rem; }
     .map-btn:hover { background: #4a6e5f; }
 
-    /* ── FOOTER ── */
-    footer {
-      background: #1e2a25; color: rgba(245,241,234,0.4);
-      text-align: center; padding: 24px 6vw;
-      font-size: 0.75rem; letter-spacing: 0.1em;
-    }
+    footer { background: #1e2a25; color: rgba(245,241,234,.4); text-align: center; padding: 24px 6vw; font-size: 0.75rem; letter-spacing: 0.1em; }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 700px) {
+    @media(max-width:700px) {
       .about-grid { grid-template-columns: 1fr; gap: 32px; }
       .step:not(:last-child)::after { display: none; }
       .process-steps { grid-template-columns: 1fr 1fr; }
       .nav-links { display: none; }
     }
-    @media (max-width: 420px) {
-      .process-steps { grid-template-columns: 1fr; }
-    }
+    @media(max-width:420px) { .process-steps { grid-template-columns: 1fr; } }
   </style>
 
-  <!-- Schema.org 結構化資料（幫助 Google 辨識） -->
   <script type="application/ld+json">
   {
-    "@context": "https://schema.org",
-    "@type": "HealthAndBeautyBusiness",
-    "name": "顯德筋絡調理室",
-    "description": "專業深層筋膜放鬆，採用林兩傳結構調整手法，由淺入深放鬆皮、筋、骨，舒緩肩頸痠痛、腰背緊繃。",
-    "url": "https://kmbcz22hwd-ai.github.io",
-    "telephone": "0936-670-614",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "忠孝路三段15巷18號3樓",
-      "addressLocality": "三重區",
-      "addressRegion": "新北市",
-      "addressCountry": "TW"
-    },
-    "openingHoursSpecification": [
-      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Tuesday","Wednesday","Thursday"], "opens": "10:00", "closes": "21:00" },
-      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Friday","Saturday"], "opens": "10:00", "closes": "12:00" },
-      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Friday","Saturday"], "opens": "18:30", "closes": "21:30" }
-    ],
-    "sameAs": [
-      "https://www.facebook.com/share/16xqja5cj7/",
-      "https://www.instagram.com/sian.bodyrelease"
-    ]
+    "@context":"https://schema.org","@type":"HealthAndBeautyBusiness",
+    "name":"顯德筋絡調理室",
+    "description":"專業深層筋膜放鬆，採用林兩傳結構調整手法，由淺入深放鬆皮、筋、骨，舒緩肩頸痠痛、腰背緊繃。",
+    "telephone":"0936-670-614",
+    "address":{"@type":"PostalAddress","streetAddress":"忠孝路三段15巷18號3樓","addressLocality":"三重區","addressRegion":"新北市","addressCountry":"TW"},
+    "sameAs":["https://www.facebook.com/share/16xqja5cj7/","https://www.instagram.com/sian.bodyrelease"]
   }
   </script>
 </head>
-
 <body>
+
+<!-- EDIT BAR -->
+<div class="edit-bar" id="editBar">
+  <span class="edit-hint">✏️ 網站內容管理</span>
+  <button class="btn-edit-on" id="btnEdit" onclick="startEdit()">開啟編輯模式</button>
+  <button class="btn-edit-off" id="btnDone" onclick="doneEdit()" style="display:none">完成編輯</button>
+  <button class="btn-save" id="btnSave" onclick="saveHTML()" style="display:none">⬇ 下載更新檔案</button>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -376,19 +219,14 @@
 
 <!-- HERO -->
 <section id="hero">
-  <p class="hero-eyebrow">新北市三重．深層筋膜調理</p>
-  <h1 class="hero-title">顯德<span>筋絡</span>調理室</h1>
-  <p class="hero-sub">專業筋膜放鬆手法，從皮、筋、骨層層釋放<br>找回身體最初的輕盈感</p>
+  <p class="hero-eyebrow"><span contenteditable="false">新北市三重．深層筋膜調理</span></p>
+  <h1 class="hero-title">顯德<span contenteditable="false">筋絡</span>調理室</h1>
+  <p class="hero-sub"><span contenteditable="false">專業筋膜放鬆手法，從皮、筋、骨層層釋放，找回身體最初的輕盈感</span></p>
   <div class="hero-btns">
-    <a class="btn-primary" href="https://line.me/R/ti/p/@413mwndv" target="_blank" rel="noopener">
-      💬 LINE 立即預約
-    </a>
+    <a class="btn-primary" href="https://line.me/R/ti/p/@413mwndv" target="_blank" rel="noopener">💬 LINE 立即預約</a>
     <a class="btn-secondary" href="#services">了解服務項目</a>
   </div>
-  <div class="hero-scroll">
-    <span class="hero-scroll-arrow">↓</span>
-    <span>向下瀏覽</span>
-  </div>
+  <div class="hero-scroll"><span>↓</span><span>向下瀏覽</span></div>
 </section>
 
 <!-- ABOUT -->
@@ -396,23 +234,16 @@
   <div class="about-grid">
     <div>
       <span class="section-label">About Us</span>
-      <h2 class="section-title">關於我們</h2>
+      <h2 class="section-title" contenteditable="false">關於我們</h2>
       <div class="divider"></div>
-      <p class="section-body">
-        「顯德筋絡調理室」座落於三重溫馨的居家空間，專注於深層筋膜的調理。不同於傳統推拿的強力按壓，我們採取循序漸進的方式，由淺入深地放鬆皮、筋、骨各個層次。在安靜、隱私的環境中，讓每一位顧客都能徹底卸下疲憊，重拾身心的平衡與和諧。
-      </p>
-      <blockquote class="about-quote">
-        推拿不是「把緊的地方推鬆」<br>而是讓身體找回它本來就有的餘裕。
-      </blockquote>
+      <p class="section-body" contenteditable="false">「顯德筋絡調理室」座落於三重溫馨的居家空間，專注於深層筋膜的調理。不同於傳統推拿的強力按壓，我們採取循序漸進的方式，由淺入深地放鬆皮、筋、骨各個層次。在安靜、隱私的環境中，讓每一位顧客都能徹底卸下疲憊，重拾身心的平衡與和諧。</p>
+      <blockquote class="about-quote" contenteditable="false">推拿不是「把緊的地方推鬆」而是讓身體找回它本來就有的餘裕。</blockquote>
     </div>
     <div>
       <span class="section-label">Our Approach</span>
-      <h2 class="section-title">我們不一樣</h2>
+      <h2 class="section-title" contenteditable="false">我們不一樣</h2>
       <div class="divider"></div>
-      <p class="section-body">
-        身體的緊繃，其實是一種保護——它在適應某個它覺得「不安全」的狀態。只要那個狀態還在，放再多都會再緊回來。<br><br>
-        我們不使用蠻力，而是透過專業手感，從皮膚、筋膜、肌肉到骨骼，一層一層地引導身體放鬆，達到深層且持久的效果。
-      </p>
+      <p class="section-body" contenteditable="false">身體的緊繃，其實是一種保護——它在適應某個它覺得「不安全」的狀態。只要那個狀態還在，放再多都會再緊回來。我們不使用蠻力，而是透過專業手感，從皮膚、筋膜、肌肉到骨骼，一層一層地引導身體放鬆，達到深層且持久的效果。</p>
     </div>
   </div>
 </section>
@@ -420,28 +251,28 @@
 <!-- FEATURES -->
 <section id="features">
   <span class="section-label">Core Features</span>
-  <h2 class="section-title">核心特色</h2>
+  <h2 class="section-title" contenteditable="false">核心特色</h2>
   <div class="divider"></div>
   <div class="features-grid">
     <div class="feature-card">
       <div class="feature-icon">🤲</div>
-      <div class="feature-name">層層放鬆技術</div>
-      <p class="feature-desc">從皮膚、筋膜、肌肉到骨骼，逐層引導放鬆，效果深層且持久。</p>
+      <div class="feature-name" contenteditable="false">層層放鬆技術</div>
+      <p class="feature-desc" contenteditable="false">從皮膚、筋膜、肌肉到骨骼，逐層引導放鬆，效果深層且持久。</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🌿</div>
-      <div class="feature-name">無痛調理手法</div>
-      <p class="feature-desc">不使用蠻力，輕一點、慢一點，更順應身體的邏輯，讓改變真正留下來。</p>
+      <div class="feature-name" contenteditable="false">無痛調理手法</div>
+      <p class="feature-desc" contenteditable="false">不使用蠻力，輕一點、慢一點，更順應身體的邏輯，讓改變真正留下來。</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🏡</div>
-      <div class="feature-name">溫馨居家環境</div>
-      <p class="feature-desc">工作室位於自家空間，單純安靜、充滿生活氣息，讓您像在家一樣放鬆自在。</p>
+      <div class="feature-name" contenteditable="false">溫馨居家環境</div>
+      <p class="feature-desc" contenteditable="false">工作室位於自家空間，單純安靜、充滿生活氣息，讓您像在家一樣放鬆自在。</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📋</div>
-      <div class="feature-name">個人化諮詢</div>
-      <p class="feature-desc">每次調理前深入了解您的身體狀況、痠痛點及生活習慣，量身規劃調理方向。</p>
+      <div class="feature-name" contenteditable="false">個人化諮詢</div>
+      <p class="feature-desc" contenteditable="false">每次調理前深入了解您的身體狀況、痠痛點及生活習慣，量身規劃調理方向。</p>
     </div>
   </div>
 </section>
@@ -449,28 +280,28 @@
 <!-- PROCESS -->
 <section id="process">
   <span class="section-label">Process</span>
-  <h2 class="section-title">調理流程</h2>
+  <h2 class="section-title" contenteditable="false">調理流程</h2>
   <div class="divider"></div>
   <div class="process-steps">
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-title">諮詢與評估</div>
-      <p class="step-desc">了解您的身體狀況、痠痛點及生活習慣。</p>
+      <div class="step-title" contenteditable="false">諮詢與評估</div>
+      <p class="step-desc" contenteditable="false">了解您的身體狀況、痠痛點及生活習慣。</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-title">淺層放鬆</div>
-      <p class="step-desc">由皮膚與淺層筋膜開始，喚醒身體的放鬆機制。</p>
+      <div class="step-title" contenteditable="false">淺層放鬆</div>
+      <p class="step-desc" contenteditable="false">由皮膚與淺層筋膜開始，喚醒身體的放鬆機制。</p>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-title">深層調理</div>
-      <p class="step-desc">針對深層肌肉與骨骼邊緣進行精細的筋絡疏通。</p>
+      <div class="step-title" contenteditable="false">深層調理</div>
+      <p class="step-desc" contenteditable="false">針對深層肌肉與骨骼邊緣進行精細的筋絡疏通。</p>
     </div>
     <div class="step">
       <div class="step-num">4</div>
-      <div class="step-title">課後建議</div>
-      <p class="step-desc">提供日常伸展建議，延長調理效果。</p>
+      <div class="step-title" contenteditable="false">課後建議</div>
+      <p class="step-desc" contenteditable="false">提供日常伸展建議，延長調理效果。</p>
     </div>
   </div>
 </section>
@@ -478,54 +309,65 @@
 <!-- SERVICES -->
 <section id="services">
   <span class="section-label">Services</span>
-  <h2 class="section-title">服務項目</h2>
+  <h2 class="section-title" contenteditable="false">服務項目</h2>
   <div class="divider"></div>
   <div class="services-grid">
     <div class="service-card">
-      <div class="service-name">局部深層舒壓</div>
-      <p class="service-desc">針對肩頸、腰背或特定痠痛部位進行加強調理，精準釋放壓力點。</p>
-      <div class="service-benefit">✦ 效益：緩解久坐僵硬、減輕局部腫脹感、釋放特定肌肉壓力。</div>
-      <div class="service-price">NT$ 1,200 <span>/ 60 分鐘</span></div>
+      <div class="service-name" contenteditable="false">局部深層舒壓</div>
+      <p class="service-desc" contenteditable="false">針對肩頸、腰背或特定痠痛部位進行加強調理，精準釋放壓力點。</p>
+      <div class="service-benefit" contenteditable="false">✦ 效益：緩解久坐僵硬、減輕局部腫脹感、釋放特定肌肉壓力。</div>
+      <div class="service-price"><span contenteditable="false">NT$ 1,200</span> <span contenteditable="false">/ 60 分鐘</span></div>
     </div>
     <div class="service-card">
-      <div class="service-name">全身筋膜平衡調理</div>
-      <p class="service-desc">針對全身主要經絡與筋膜鏈進行系統性放鬆，緩解長期累積的緊繃感。</p>
-      <div class="service-benefit">✦ 效益：改善睡眠品質、提升肢體靈活度、舒緩全身痠痛。</div>
-      <div class="service-price">NT$ 1,500 <span>/ 90 分鐘</span></div>
+      <div class="service-name" contenteditable="false">全身筋膜平衡調理</div>
+      <p class="service-desc" contenteditable="false">針對全身主要經絡與筋膜鏈進行系統性放鬆，緩解長期累積的緊繃感。</p>
+      <div class="service-benefit" contenteditable="false">✦ 效益：改善睡眠品質、提升肢體靈活度、舒緩全身痠痛。</div>
+      <div class="service-price"><span contenteditable="false">NT$ 1,500</span> <span contenteditable="false">/ 90 分鐘</span></div>
     </div>
   </div>
-  <p style="margin-top:1.5rem;font-size:0.82rem;color:var(--muted);">
-    ✦ 問題反覆超過 3 個月，歡迎私訊來聊，不收費、沒壓力。
-  </p>
+  <p style="margin-top:1.5rem;font-size:0.82rem;color:var(--muted);" contenteditable="false">✦ 問題反覆超過 3 個月，歡迎私訊來聊，不收費、沒壓力。</p>
 </section>
 
 <!-- RESULTS -->
 <section id="results">
   <span class="section-label">Case Studies</span>
-  <h2 class="section-title">調理實績</h2>
+  <h2 class="section-title" contenteditable="false">調理實績</h2>
   <div class="divider"></div>
   <div class="results-grid">
+
     <div class="result-card">
-      <div class="result-title">上班族肩頸放鬆</div>
-      <p class="result-desc">長期搬重物導致的圓肩與頸部僵硬手無法正常舉高，經過三次調理後明顯改善體態與舒適度。</p>
+      <div class="photo-slot" onclick="triggerUpload(this)">
+        <div class="photo-placeholder"><span>📷</span><span>點擊上傳照片</span></div>
+        <div class="photo-overlay"><span>📷</span>更換照片</div>
+        <input type="file" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+      </div>
+      <div class="result-body">
+        <div class="result-title" contenteditable="false">上班族肩頸放鬆</div>
+        <p class="result-desc" contenteditable="false">長期搬重物導致的圓肩與頸部僵硬手無法正常舉高，經過三次調理後明顯改善體態與舒適度。</p>
+      </div>
     </div>
+
     <div class="result-card">
-      <div class="result-title">開刀後肌肉恢復</div>
-      <p class="result-desc">協助膝蓋開過刀的客人放鬆緊繃的下肢筋膜，使其本無法正常蹲下的狀況改善。</p>
+      <div class="photo-slot" onclick="triggerUpload(this)">
+        <div class="photo-placeholder"><span>📷</span><span>點擊上傳照片</span></div>
+        <div class="photo-overlay"><span>📷</span>更換照片</div>
+        <input type="file" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+      </div>
+      <div class="result-body">
+        <div class="result-title" contenteditable="false">開刀後肌肉恢復</div>
+        <p class="result-desc" contenteditable="false">協助膝蓋開過刀的客人放鬆緊繃的下肢筋膜，使其本無法正常蹲下的狀況改善。</p>
+      </div>
     </div>
-    <div class="result-card">
-      <div class="result-title">慢性疼痛緩解</div>
-      <p class="result-desc">透過系統性筋膜調理，協助長期受腰背痠痛困擾的顧客找回日常活動的舒適度。</p>
-    </div>
+
   </div>
 </section>
 
 <!-- SOCIAL -->
 <section id="social">
   <span class="section-label">Follow Us</span>
-  <h2 class="section-title">追蹤我們</h2>
+  <h2 class="section-title" contenteditable="false">追蹤我們</h2>
   <div class="divider" style="margin:1.2rem auto;"></div>
-  <p class="social-intro">在社群平台追蹤顯德筋絡調理室，獲取最新衛教知識、調理心得與優惠資訊。</p>
+  <p class="social-intro" contenteditable="false">在社群平台追蹤顯德筋絡調理室，獲取最新衛教知識、調理心得與優惠資訊。</p>
   <div class="social-btns">
     <a class="social-btn btn-fb" href="https://www.facebook.com/share/16xqja5cj7/?mibextid=wwXIfr" target="_blank" rel="noopener">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
@@ -544,42 +386,99 @@
 
 <!-- CONTACT -->
 <section id="contact">
-  <h2 class="contact-title">預約與聯繫</h2>
-  <p class="contact-sub">歡迎來電或透過 LINE 預約，不收費、沒壓力</p>
+  <h2 class="contact-title" contenteditable="false">預約與聯繫</h2>
+  <p class="contact-sub" contenteditable="false">歡迎來電或透過 LINE 預約，不收費、沒壓力</p>
   <div class="contact-grid">
     <div class="contact-block">
       <h3>服務地址</h3>
-      <p>新北市三重區<br>忠孝路三段15巷18號3樓</p>
+      <p contenteditable="false">新北市三重區忠孝路三段15巷18號3樓</p>
     </div>
     <div class="contact-block">
       <h3>聯繫方式</h3>
       <p>
-        📞 <a href="tel:0936670614">0936-670-614</a><br>
-        💬 LINE：<a href="https://line.me/R/ti/p/@413mwndv" target="_blank" rel="noopener">@413mwndv</a>
+        📞 <a href="tel:0936670614" contenteditable="false">0936-670-614</a><br>
+        💬 LINE：<a href="https://line.me/R/ti/p/@413mwndv" target="_blank" rel="noopener" contenteditable="false">@413mwndv</a>
       </p>
     </div>
-    <div class="contact-block contact-hours">
+    <div class="contact-block">
       <h3>營業時間</h3>
-      <p>
+      <p contenteditable="false">
         週二至週四：10:00 – 21:00<br>
-        週一、週五：10:00 – 12:00
-        <span style="padding-left:4.2rem">18:30 – 21:30</span>
-        週六：10:00 – 12:00
-        <span style="padding-left:1.4rem">18:30 – 21:30</span>
+        週一、週五：10:00 – 12:00 / 18:30 – 21:30<br>
+        週六：10:00 – 12:00 / 18:30 – 21:30<br>
         週日：採預約制
       </p>
     </div>
   </div>
-  <a class="map-btn" href="https://maps.google.com/?q=新北市三重區忠孝路三段15巷18號3樓" target="_blank" rel="noopener">
-    🗺 Google 地圖導航
-  </a>
+  <a class="map-btn" href="https://maps.google.com/?q=新北市三重區忠孝路三段15巷18號3樓" target="_blank" rel="noopener">🗺 Google 地圖導航</a>
 </section>
 
-<!-- FOOTER -->
-<footer>
-  © 2026 顯德筋絡調理室 All Rights Reserved．
-  新北市三重區忠孝路三段15巷18號3樓
-</footer>
+<footer>© 2026 顯德筋絡調理室 All Rights Reserved．新北市三重區忠孝路三段15巷18號3樓</footer>
 
+<script>
+// ── 編輯模式 ──
+function startEdit() {
+  document.body.classList.add('editing');
+  document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable','true'));
+  document.getElementById('btnEdit').style.display = 'none';
+  document.getElementById('btnDone').style.display = 'inline-block';
+  document.getElementById('btnSave').style.display = 'inline-block';
+  document.getElementById('editBar').querySelector('.edit-hint').textContent = '🟡 編輯模式：點擊任何文字即可修改';
+}
+
+function doneEdit() {
+  document.body.classList.remove('editing');
+  document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable','false'));
+  document.getElementById('btnEdit').style.display = 'inline-block';
+  document.getElementById('btnDone').style.display = 'none';
+  document.getElementById('btnSave').style.display = 'none';
+  document.getElementById('editBar').querySelector('.edit-hint').textContent = '✏️ 網站內容管理';
+}
+
+// ── 儲存 HTML（含照片 base64）──
+function saveHTML() {
+  // 暫時關閉編輯模式樣式
+  document.body.classList.remove('editing');
+  document.querySelectorAll('[contenteditable]').forEach(el => el.setAttribute('contenteditable','false'));
+
+  // 隱藏 edit-bar
+  document.getElementById('editBar').style.display = 'none';
+
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+  // 恢復
+  document.getElementById('editBar').style.display = 'flex';
+
+  const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'index.html';
+  a.click();
+}
+
+// ── 照片上傳 ──
+function triggerUpload(slot) {
+  if (!document.body.classList.contains('editing')) return;
+  slot.querySelector('input[type=file]').click();
+}
+
+function loadPhoto(input) {
+  const slot = input.closest('.photo-slot');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // 移除 placeholder
+    const ph = slot.querySelector('.photo-placeholder');
+    if (ph) ph.remove();
+    // 插入或更換 img
+    let img = slot.querySelector('img');
+    if (!img) {
+      img = document.createElement('img');
+      slot.insertBefore(img, slot.querySelector('.photo-overlay'));
+    }
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+</script>
 </body>
 </html>
